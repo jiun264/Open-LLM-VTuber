@@ -95,17 +95,22 @@ class AsyncLLM(StatelessLLMInterface):
                 ]
             logger.debug(f"Messages: {messages_with_system}")
 
-            available_tools = tools if self.support_tools else NOT_GIVEN
+            available_tools = tools if self.support_tools and tools else NOT_GIVEN
+            if available_tools is not NOT_GIVEN and len(available_tools) == 0:
+                available_tools = NOT_GIVEN
+
+            request_kwargs = {
+                "messages": messages_with_system,
+                "model": self.model,
+                "stream": True,
+                "temperature": self.temperature,
+            }
+            if available_tools is not NOT_GIVEN:
+                request_kwargs["tools"] = available_tools
 
             stream: AsyncStream[
                 ChatCompletionChunk
-            ] = await self.client.chat.completions.create(
-                messages=messages_with_system,
-                model=self.model,
-                stream=True,
-                temperature=self.temperature,
-                tools=available_tools,
-            )
+            ] = await self.client.chat.completions.create(**request_kwargs)
             logger.debug(
                 f"Tool Support: {self.support_tools}, Available tools: {available_tools}"
             )

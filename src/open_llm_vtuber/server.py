@@ -42,11 +42,29 @@ class CORSStaticFiles(StarletteStaticFiles):
 
 class AvatarStaticFiles(CORSStaticFiles):
     """
-    Avatar files handler with security restrictions and CORS headers
+    Avatar files handler with security restrictions and CORS headers.
+
+    Live2D character packs are not just images; they include model JSON, motion,
+    physics, animation, and moc files that must be served as static assets too.
     """
 
     async def get_response(self, path: str, scope):
-        allowed_extensions = (".jpg", ".jpeg", ".png", ".gif", ".svg")
+        allowed_extensions = (
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".gif",
+            ".svg",
+            ".json",
+            ".moc3",
+            ".can3",
+            ".exp3.json",
+            ".motion3.json",
+            ".physics3.json",
+            ".model3.json",
+            ".cdi3.json",
+            ".vtube.json",
+        )
         if not any(path.lower().endswith(ext) for ext in allowed_extensions):
             return Response("Forbidden file type", status_code=403)
         response = await super().get_response(path, scope)
@@ -132,6 +150,11 @@ class WebSocketServer:
             "/avatars",
             AvatarStaticFiles(directory="avatars"),
             name="avatars",
+        )
+        self.app.mount(
+            "/characters",
+            CORSStaticFiles(directory="characters"),
+            name="characters",
         )
 
         # Mount web tool directory separately from frontend
